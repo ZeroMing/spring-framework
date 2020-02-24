@@ -61,40 +61,40 @@ task api(type: Javadoc) {
 /**
  * Produce KDoc for all Spring Framework modules in "build/docs/kdoc"
  */
-dokka {
-	dependsOn {
-		tasks.getByName("api")
-	}
-	doFirst {
-		classpath = moduleProjects.collect { project -> project.jar.outputs.files.getFiles() }.flatten()
-		classpath += files(moduleProjects.collect { it.sourceSets.main.compileClasspath })
-		sourceDirs = files(moduleProjects
-				.findAll {
-					it.pluginManager.hasPlugin("kotlin")
-				}
-				.collect { project ->
-					def kotlinDirs = project.sourceSets.main.kotlin.srcDirs.collect()
-					kotlinDirs -= project.sourceSets.main.java.srcDirs
-				})
-	}
-	moduleName = "spring-framework"
-	outputFormat = "html"
-	outputDirectory = "$buildDir/docs/kdoc"
-
-	externalDocumentationLink {
-		url = new URL("https://docs.spring.io/spring-framework/docs/$version/javadoc-api/")
-		packageListUrl = new File(buildDir, "docs/javadoc/package-list").toURI().toURL()
-	}
-	externalDocumentationLink {
-		url = new URL("https://projectreactor.io/docs/core/release/api/")
-	}
-	externalDocumentationLink {
-		url = new URL("https://www.reactive-streams.org/reactive-streams-1.0.1-javadoc/")
-	}
-	externalDocumentationLink {
-		url = new URL("https://kotlin.github.io/kotlinx.coroutines/kotlinx-coroutines-core/")
-	}
-}
+//dokka {
+//	dependsOn {
+//		tasks.getByName("api")
+//	}
+//	doFirst {
+//		classpath = moduleProjects.collect { project -> project.jar.outputs.files.getFiles() }.flatten()
+//		classpath += files(moduleProjects.collect { it.sourceSets.main.compileClasspath })
+//		sourceDirs = files(moduleProjects
+//				.findAll {
+//					it.pluginManager.hasPlugin("kotlin")
+//				}
+//				.collect { project ->
+//					def kotlinDirs = project.sourceSets.main.kotlin.srcDirs.collect()
+//					kotlinDirs -= project.sourceSets.main.java.srcDirs
+//				})
+//	}
+//	moduleName = "spring-framework"
+//	outputFormat = "html"
+//	outputDirectory = "$buildDir/docs/kdoc"
+//
+//	externalDocumentationLink {
+//		url = new URL("https://docs.spring.io/spring-framework/docs/$version/javadoc-api/")
+//		packageListUrl = new File(buildDir, "docs/javadoc/package-list").toURI().toURL()
+//	}
+//	externalDocumentationLink {
+//		url = new URL("https://projectreactor.io/docs/core/release/api/")
+//	}
+//	externalDocumentationLink {
+//		url = new URL("https://www.reactive-streams.org/reactive-streams-1.0.1-javadoc/")
+//	}
+//	externalDocumentationLink {
+//		url = new URL("https://kotlin.github.io/kotlinx.coroutines/kotlinx-coroutines-core/")
+//	}
+//}
 
 task downloadResources(type: Download) {
 	def version = "0.1.3.RELEASE"
@@ -123,40 +123,40 @@ asciidoctorj {
  * Produce the Spring Framework Reference documentation
  * from "src/docs/asciidoc" into  "build/asciidoc/html5"
  */
-asciidoctor {
-	baseDirFollowsSourceDir()
-	configurations 'asciidoctorExt'
-	sources {
-		include '*.adoc'
-	}
-	outputDir "$buildDir/docs/ref-docs/"
-	resources {
-		from(sourceDir) {
-			include 'images/*', 'css/**', 'js/**'
-		}
-		from extractDocResources
-	}
-	logDocuments = true
-	outputOptions {
-		backends = ["html5", "pdf"]
-	}
-	options doctype: 'book', eruby: 'erubis'
-	attributes([
-			icons: 'font',
-			idprefix: '',
-			idseparator: '-',
-			docinfo: 'shared',
-			revnumber: project.version,
-			sectanchors: '',
-			sectnums: '',
-			'source-highlighter': 'highlight.js',
-			highlightjsdir: 'js/highlight',
-			'highlightjs-theme': 'github',
-			stylesdir: 'css/',
-			stylesheet: 'stylesheet.css',
-			'spring-version': project.version
-	])
-}
+//asciidoctor {
+//	baseDirFollowsSourceDir()
+//	configurations 'asciidoctorExt'
+//	sources {
+//		include '*.adoc'
+//	}
+//	outputDir "$buildDir/docs/ref-docs/"
+//	resources {
+//		from(sourceDir) {
+//			include 'images/*', 'css/**', 'js/**'
+//		}
+//		from extractDocResources
+//	}
+//	logDocuments = true
+//	outputOptions {
+//		backends = ["html5", "pdf"]
+//	}
+//	options doctype: 'book', eruby: 'erubis'
+//	attributes([
+//			icons: 'font',
+//			idprefix: '',
+//			idseparator: '-',
+//			docinfo: 'shared',
+//			revnumber: project.version,
+//			sectanchors: '',
+//			sectnums: '',
+//			'source-highlighter': 'highlight.js',
+//			highlightjsdir: 'js/highlight',
+//			'highlightjs-theme': 'github',
+//			stylesdir: 'css/',
+//			stylesheet: 'stylesheet.css',
+//			'spring-version': project.version
+//	])
+//}
 
 /**
  * Zip all docs (API and reference) into a single archive
@@ -195,18 +195,25 @@ task schemaZip(type: Zip) {
 	description = "Builds -${archiveClassifier} archive containing all " +
 			"XSDs for deployment at https://springframework.org/schema."
 	duplicatesStrategy DuplicatesStrategy.EXCLUDE
+	//当前系统是否是windows的标志
+	def isWindows = System.properties['os.name'].toUpperCase().contains('WINDOWS')
+
+	//不同的操作系统，表示子目录的符号是不同的
+	def schemaPath = isWindows ? "META-INF\\spring.schemas" : "META-INF/spring.schemas"
+
 	moduleProjects.each { module ->
 		def Properties schemas = new Properties();
 
 		module.sourceSets.main.resources.find {
-			(it.path.endsWith("META-INF/spring.schemas") || it.path.endsWith("META-INF\\spring.schemas"))
+			(it.path.endsWith(schemaPath))
 		}?.withInputStream { schemas.load(it) }
 
 		for (def key : schemas.keySet()) {
 			def shortName = key.replaceAll(/http.*schema.(.*).spring-.*/, '$1')
 			assert shortName != key
 			File xsdFile = module.sourceSets.main.resources.find {
-				(it.path.endsWith(schemas.get(key)) || it.path.endsWith(schemas.get(key).replaceAll('\\/','\\\\')))
+				// 如果是windows环境，就要对路径中的分隔符做替换
+				isWindows ? it.path.endsWith(schemas.get(key).replaceAll('\\/','\\\\')) : it.path.endsWith(schemas.get(key))
 			}
 			assert xsdFile != null
 			into (shortName) {
